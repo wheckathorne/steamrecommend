@@ -1,13 +1,32 @@
 import axios from "axios";
 
+export interface SteamUserPayload {
+  userId?: string
+  gameId?: string
+}
+
 export const useSteamApi = () => {
 
-  const steamKey = 'C8AB94A6B44D614DFCE4A1A4AF4E30FD'
-
-  const getPlayerSummary = async (steamId: string) => {
-    const response = await axios.get(`https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=${steamKey}&steamids=${steamId}`)
+  const getPlayerSummary = async (payload: SteamUserPayload) => {
+    const response = await axios.post(
+      'https://steam-recommends-backend-42415a6936b3.herokuapp.com/api/steam/get-user',
+      payload)
     return response.data
   }
 
-  return { getPlayerSummary }
+  const getPlayerGames = async (payload: SteamUserPayload) => {
+    const response = await axios.post(
+      'https://steam-recommends-backend-42415a6936b3.herokuapp.com/api/steam/get-owned-games',
+      payload)
+    return response.data
+  }
+
+  const getGameDetails = async (payload: SteamUserPayload) => {
+    const response = await axios.post(
+      'https://steam-recommends-backend-42415a6936b3.herokuapp.com/api/steam/get-game-details',
+      payload)
+    return response.data
+  }
+
+  return { getPlayerSummary, getPlayerGames, getGameDetails }
 }

@@ -5,14 +5,36 @@ import Button from "primevue/button";
 import {ref} from "vue";
 import {useSteamApi} from "@/components/common/use-steam-api.ts";
 
+interface Game {
+  appid: number
+  playtime_forever: number
+}
+
+interface PlayerGamesResponse {
+  response: {
+    games: Game[]
+  }
+}
+
 const steamApi = useSteamApi()
 
 const currentSteamId = ref<string>();
 
 const getPlayerBySteamId = async () => {
   if (!currentSteamId.value) return
-  const playerInfo = await steamApi.getPlayerSummary(currentSteamId.value)
+  const playerInfo = await steamApi.getPlayerSummary({ userId: currentSteamId.value })
+  const playerGames: PlayerGamesResponse = await steamApi.getPlayerGames({ userId: currentSteamId.value })
+  const gameDetailsPayload = playerGames.response.games.sort(
+    (a, b) => a.playtime_forever > b.playtime_forever ? -1 : 1).slice(0, 10)
+  let gameDetails = []
+  for (let i = 0; i < gameDetailsPayload.length; i++) {
+    const game = gameDetailsPayload[i]
+    const gameDetail = await steamApi.getGameDetails({ gameId: `${game.appid}` })
+    gameDetails.push(gameDetail)
+  }
   console.log(playerInfo)
+  console.log(playerGames)
+  console.log(gameDetails)
 }
 </script>
 
