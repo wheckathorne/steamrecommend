@@ -9,6 +9,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     HomeHeader: typeof import('./src/components/HomeHeader.vue')['default']
+    NewtonCradleLoader: typeof import('./src/components/NewtonCradleLoader.vue')['default']
     RecommendForm: typeof import('./src/components/RecommendForm.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']

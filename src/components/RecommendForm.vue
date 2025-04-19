@@ -1,56 +1,177 @@
 <script setup lang="ts">
-import Card from "primevue/card";
 import InputText from "primevue/inputtext";
 import Button from "primevue/button";
+import Carousel from 'primevue/carousel';
 import {ref} from "vue";
 import {useSteamApi} from "@/components/common/use-steam-api.ts";
-
-interface Game {
-  appid: number
-  playtime_forever: number
-}
-
-interface PlayerGamesResponse {
-  response: {
-    games: Game[]
-  }
-}
+import type {
+  GameCarouselDetails,
+  GameDetailsResponse, Player,
+  PlayerDetailsResponse,
+  PlayerGamesResponse
+} from "@/components/composables/recommend-form.ts";
+import NewtonCradleLoader from "@/components/NewtonCradleLoader.vue";
 
 const steamApi = useSteamApi()
 
-const currentSteamId = ref<string>();
+const player1Loading = ref<boolean>(false)
+const player2Loading = ref<boolean>(false)
+const player1Profile = ref<Player>()
+const player2Profile = ref<Player>()
+const player1GameDetails = ref<GameDetailsResponse[]>([])
+const player2GameDetails = ref<GameDetailsResponse[]>([])
+const player1GameDetailsCarousel = ref<GameCarouselDetails[]>([])
+const player2GameDetailsCarousel = ref<GameCarouselDetails[]>([])
+const currentSteamId1 = ref<string>()
+const currentSteamId2 = ref<string>()
 
-const getPlayerBySteamId = async () => {
-  if (!currentSteamId.value) return
-  const playerInfo = await steamApi.getPlayerSummary({ userId: currentSteamId.value })
-  const playerGames: PlayerGamesResponse = await steamApi.getPlayerGames({ userId: currentSteamId.value })
-  const gameDetailsPayload = playerGames.response.games.sort(
+const responsiveOptions = ref([
+  {
+    breakpoint: '1436px',
+    numVisible: 2,
+    numScroll: 2
+  },
+  {
+    breakpoint: '515px',
+    numVisible: 1,
+    numScroll: 1
+  }
+])
+
+const resetPlayer1 = () => {
+  player1Profile.value = undefined
+  player1GameDetails.value = []
+  player1GameDetailsCarousel.value = []
+}
+
+const resetPlayer2 = () => {
+  player2Profile.value = undefined
+  player2GameDetails.value = []
+  player2GameDetailsCarousel.value = []
+}
+
+const getPlayerBySteamId = async (isPlayer1: boolean) => {
+  if ((!currentSteamId1.value && isPlayer1) || (!currentSteamId2.value && !isPlayer1)) return
+  const payloadId = isPlayer1 ? currentSteamId1.value : currentSteamId2.value
+  if (isPlayer1) {
+    resetPlayer1()
+    player1Loading.value = true
+  } else {
+    resetPlayer2()
+    player2Loading.value = true
+  }
+  const playerInfo: PlayerDetailsResponse = await steamApi.getPlayerSummary({ userId: payloadId })
+  const playerGames: PlayerGamesResponse = await steamApi.getPlayerGames({ userId: payloadId })
+  const gameDetailsPayload = playerGames.games.sort(
     (a, b) => a.playtime_forever > b.playtime_forever ? -1 : 1).slice(0, 10)
   let gameDetails = []
   for (let i = 0; i < gameDetailsPayload.length; i++) {
     const game = gameDetailsPayload[i]
     const gameDetail = await steamApi.getGameDetails({ gameId: `${game.appid}` })
-    gameDetails.push(gameDetail)
+    const id = "" + game.appid
+    gameDetails.push(gameDetail[id].data)
   }
-  console.log(playerInfo)
-  console.log(playerGames)
-  console.log(gameDetails)
+  if (isPlayer1) {
+    player1Profile.value = playerInfo.players[0]
+    player1GameDetails.value = gameDetails
+  } else {
+    player2Profile.value = playerInfo.players[0]
+    player2GameDetails.value = gameDetails
+  }
+  formatGamesIntoCarousel(isPlayer1)
+  if (isPlayer1) {
+    player1Loading.value = false
+  } else {
+    player2Loading.value = false
+  }
+}
+
+const formatGamesIntoCarousel = (isPlayer1: boolean) => {
+  if (isPlayer1) {
+    for (let i = 0; i < player1GameDetails.value.length; i++) {
+      const game = player1GameDetails.value[i]
+      const gameDetail: GameCarouselDetails = {
+        gameName: game.name,
+        gameImgUrl: game.capsule_image
+      }
+      player1GameDetailsCarousel.value.push(gameDetail)
+    }
+  } else {
+    for (let i = 0; i < player2GameDetails.value.length; i++) {
+      const game = player2GameDetails.value[i]
+      const gameDetail: GameCarouselDetails = {
+        gameName: game.name,
+        gameImgUrl: game.capsule_image
+      }
+      player2GameDetailsCarousel.value.push(gameDetail)
+    }
+  }
 }
 </script>
 
 <template>
   <div class="recommend-form">
-    <Card>
-      <template #title>
-        <div class="recommend-form__title">Add Player</div>
-      </template>
-      <template #content>
-        <div class="recommend-form__add-player">
-          <InputText v-model="currentSteamId" placeholder="Player Steam ID" />
-          <Button @click.stop.prevent="getPlayerBySteamId"><i class="pi pi-plus"/></Button>
+    <div class="recommend-form__title">
+      <h4>Add Players</h4>
+    </div>
+    <div class="recommend-form__add-players">
+      <div class="recommend-form__player-input">
+        <div class="recommend-form__player-input-flex-center">
+          <InputText v-model="currentSteamId1" placeholder="Player 1 Steam ID" />
+          <Button @click.stop.prevent="() => getPlayerBySteamId(true)"><i class="pi pi-check"/></Button>
         </div>
-      </template>
-    </Card>
+        <div v-if="player1Profile && player1GameDetails && !player1Loading">
+          <h4 style="color: var(--p-sky-300)">{{ player1Profile?.personaname }}</h4>
+        </div>
+        <div v-if="player1Loading">
+          <NewtonCradleLoader/>
+        </div>
+        <Carousel class="recommend-form__carousel"
+                  :value="player1GameDetailsCarousel"
+                  :num-scroll="3"
+                  :num-visible="3"
+                  :responsive-options="responsiveOptions">
+          <template #item="slotProps">
+            <div class="recommend-form__game-card">
+              <img :src="slotProps.data.gameImgUrl" alt="Game Image" style="width: 6rem;" />
+              <h5 style="color: var(--p-sky-300); width: 100%;">{{ slotProps.data.gameName }}</h5>
+            </div>
+          </template>
+          <template #empty>
+            <div>
+            </div>
+          </template>
+        </Carousel>
+      </div>
+      <div class="recommend-form__player-input">
+        <div class="recommend-form__player-input-flex-center">
+          <InputText v-model="currentSteamId2" placeholder="Player 2 Steam ID" />
+          <Button @click.stop.prevent="() => getPlayerBySteamId(false)"><i class="pi pi-check"/></Button>
+        </div>
+        <div v-if="player2Profile && player2GameDetails && !player2Loading">
+          <h4 style="color: var(--p-sky-300)">{{ player2Profile?.personaname }}</h4>
+        </div>
+        <div v-if="player2Loading">
+          <NewtonCradleLoader/>
+        </div>
+        <Carousel class="recommend-form__carousel"
+                  :value="player2GameDetailsCarousel"
+                  :num-scroll="3"
+                  :num-visible="3"
+                  :responsive-options="responsiveOptions">
+          <template #item="slotProps">
+            <div class="recommend-form__game-card">
+              <img :src="slotProps.data.gameImgUrl" alt="Game Image" style="width: 6rem;" />
+              <h5 style="color: var(--p-sky-300); width: 100%;">{{ slotProps.data.gameName }}</h5>
+            </div>
+          </template>
+          <template #empty>
+            <div>
+            </div>
+          </template>
+        </Carousel>
+      </div>
+     </div>
   </div>
 </template>
 
@@ -59,6 +180,9 @@ const getPlayerBySteamId = async () => {
   width: 75%;
   gap: 1rem;
   margin: auto;
+  background-color: #151515;
+  border-radius: 1rem;
+  min-height: 40vh;
   &__title {
     font-size: 2rem;
     font-weight: 700;
@@ -66,14 +190,69 @@ const getPlayerBySteamId = async () => {
     color: var(--p-sky-300)
   }
 
-  &__add-player {
-    display: flex;
-    gap: 1rem;
-    padding: 2rem;
+  &__carousel {
+    max-width: 30rem;
   }
 
-  :deep(.p-card) {
-    background-color: #151515;
+  @media only screen and (max-width: 89.75rem) {
+    &__carousel {
+      max-width: 20rem;
+    }
+  }
+
+  @media only screen and (max-width: 32.1875rem) {
+    &__carousel {
+      max-width: 15rem;
+    }
+  }
+
+  &__game-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    text-align: center;
+  }
+
+  &__add-players {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  &__player-input {
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+    gap: 1.2rem;
+    justify-content: start;
+    align-items: center;
+    background-color: #111111;
+    border-radius: 1rem;
+    min-height: 20vh;
+    &-flex-center {
+      display: flex;
+      gap: 1rem;
+      max-height: 2.4rem;
+    }
+  }
+}
+
+@media only screen and (max-width: 61.5rem) {
+  .recommend-form {
+    &__add-players {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+@media only screen and (max-width: 30rem) {
+  .recommend-form {
+    width: 95%;
   }
 }
 </style>

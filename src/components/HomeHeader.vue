@@ -27,4 +27,16 @@
     font-weight: 400;
   }
 }
+
+@media only screen and (max-width: 36.25rem) {
+  .home-header {
+    align-items: start;
+    &__title {
+      font-size: 2rem;
+    }
+    &__subtitle {
+      font-size: 1.125rem;
+    }
+  }
+}
 </style>
