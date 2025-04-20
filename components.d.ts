@@ -9,6 +9,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     CubeLoader: typeof import('./src/components/CubeLoader.vue')['default']
+    FlipCard: typeof import('./src/components/FlipCard.vue')['default']
     HomeHeader: typeof import('./src/components/HomeHeader.vue')['default']
     NewtonCradleLoader: typeof import('./src/components/NewtonCradleLoader.vue')['default']
     RecommendForm: typeof import('./src/components/RecommendForm.vue')['default']

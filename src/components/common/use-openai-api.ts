@@ -14,6 +14,7 @@ export interface OpenAIGameDetailsPayload {
 
 export interface OpenAIResponse {
   response: string
+  gameName: string
 }
 
 export const useOpenAIApi = () => {

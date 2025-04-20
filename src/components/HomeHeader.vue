@@ -1,7 +1,3 @@
-<script setup lang="ts">
-
-</script>
-
 <template>
   <div class="home-header">
     <div class="home-header__title header sky-300">Steam Recommends</div>

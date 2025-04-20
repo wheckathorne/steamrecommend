@@ -4,8 +4,14 @@ import RecommendForm from "@/components/RecommendForm.vue";
 </script>
 
 <template>
-  <div>
+  <div class="home-view">
     <HomeHeader/>
     <RecommendForm/>
   </div>
 </template>
+
+<style scoped lang="scss">
+.home-view {
+  padding-bottom: 5rem;
+}
+</style>

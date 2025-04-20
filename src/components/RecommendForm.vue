@@ -20,12 +20,15 @@ import {
   useOpenAIApi
 } from "@/components/common/use-openai-api.ts";
 import CubeLoader from "@/components/CubeLoader.vue";
+import FlipCard from "@/components/FlipCard.vue";
 
 const steamApi = useSteamApi()
 const openAiApi = useOpenAIApi()
 
 const player1Loading = ref<boolean>(false)
 const player2Loading = ref<boolean>(false)
+const player1Loaded = ref<boolean>(false)
+const player2Loaded = ref<boolean>(false)
 const responseLoading = ref<boolean>(false)
 const player1Profile = ref<Player>()
 const player2Profile = ref<Player>()
@@ -35,7 +38,7 @@ const player1GameDetailsCarousel = ref<GameCarouselDetails[]>([])
 const player2GameDetailsCarousel = ref<GameCarouselDetails[]>([])
 const currentSteamId1 = ref<string>()
 const currentSteamId2 = ref<string>()
-const finalResponse = ref<string>()
+const finalResponse = ref<OpenAIResponse>()
 
 const responsiveOptions = ref([
   {
@@ -55,6 +58,7 @@ const resetPlayer1 = () => {
   player1GameDetails.value = []
   player1GameDetailsCarousel.value = []
   finalResponse.value = undefined
+  player1Loaded.value = false
 }
 
 const resetPlayer2 = () => {
@@ -62,6 +66,7 @@ const resetPlayer2 = () => {
   player2GameDetails.value = []
   player2GameDetailsCarousel.value = []
   finalResponse.value = undefined
+  player2Loaded.value = false
 }
 
 const getPlayerBySteamId = async (isPlayer1: boolean) => {
@@ -95,8 +100,10 @@ const getPlayerBySteamId = async (isPlayer1: boolean) => {
   formatGamesIntoCarousel(isPlayer1)
   if (isPlayer1) {
     player1Loading.value = false
+    player1Loaded.value = true
   } else {
     player2Loading.value = false
+    player2Loaded.value = true
   }
 }
 
@@ -133,10 +140,8 @@ const compareUserProfiles = async () => {
     profileOne: player1GameDetailsPayload,
     profileTwo: player2GameDetailsPayload
   }
-  const response: OpenAIResponse = await openAiApi.compareProfiles(payload)
-  console.log(response)
+  finalResponse.value = await openAiApi.compareProfiles(payload)
   responseLoading.value = false
-
 }
 
 </script>
@@ -204,7 +209,7 @@ const compareUserProfiles = async () => {
         </Carousel>
       </div>
     </div>
-    <div class="recommend-form__submit-btn" v-if="player1GameDetails && player2GameDetails && !finalResponse && !responseLoading">
+    <div class="recommend-form__submit-btn" v-if="player1Loaded && player2Loaded && !finalResponse && !responseLoading">
       <Button @click.stop.prevent="compareUserProfiles" label="Find Compatible Games">
         <template #icon>
           <i class="pi pi-search"/>
@@ -213,6 +218,9 @@ const compareUserProfiles = async () => {
     </div>
     <div v-if="responseLoading" class="recommend-form__loading">
       <CubeLoader/>
+    </div>
+    <div v-if="finalResponse && !responseLoading" class="recommend-form__final-response">
+      <FlipCard :explanation="finalResponse.response" :game-name="finalResponse.gameName"/>
     </div>
   </div>
 </template>
@@ -225,6 +233,15 @@ const compareUserProfiles = async () => {
   background-color: #151515;
   border-radius: 1rem;
   min-height: 40vh;
+
+  &__final-response {
+    padding: 2rem;
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
 
   &__submit-btn {
     display: flex;
