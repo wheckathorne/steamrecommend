@@ -13,7 +13,7 @@ defineProps<{
       </div>
       <div class="flip-card-back">
         <p class="title">Explanation</p>
-        <p>{{ explanation }}</p>
+        <p style="width: 60%; text-align: center; margin: auto;">{{ explanation }}</p>
       </div>
     </div>
   </div>
@@ -21,10 +21,23 @@ defineProps<{
 <style scoped lang="scss">
 .flip-card {
   background-color: transparent;
-  width: 40%;
+  width: 65%;
   height: 254px;
   perspective: 1000px;
   font-family: sans-serif;
+}
+
+@media only screen and (max-width: 1156px) {
+  .flip-card {
+    width: 90%;
+  }
+}
+
+@media only screen and (max-width: 812px) {
+  .flip-card {
+    width: 100%;
+    font-size: 0.7rem;
+  }
 }
 
 .title {
@@ -69,7 +82,7 @@ defineProps<{
 
 .flip-card-back {
   background: linear-gradient(120deg, var(--p-sky-500) 30%, var(--p-sky-700) 88%,
-  var(--p-sky-100) 40%, var(--p-sky-400) 78%);
+  var(--p-sky-100) 40%, var(--p-sky-200) 78%);
   color: var(--p-sky-100);
   transform: rotateY(180deg);
 }

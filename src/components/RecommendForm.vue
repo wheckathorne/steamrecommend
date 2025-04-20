@@ -81,6 +81,7 @@ const getPlayerBySteamId = async (isPlayer1: boolean) => {
   }
   const playerInfo: PlayerDetailsResponse = await steamApi.getPlayerSummary({ userId: payloadId })
   const playerGames: PlayerGamesResponse = await steamApi.getPlayerGames({ userId: payloadId })
+  console.log(playerGames)
   const gameDetailsPayload = playerGames.games.sort(
     (a, b) => a.playtime_forever > b.playtime_forever ? -1 : 1).slice(0, 10)
   let gameDetails = []
