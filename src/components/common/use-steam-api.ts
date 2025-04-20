@@ -1,6 +1,6 @@
 import axios from "axios";
 import type {
-  GameDetailsResponse, PlayerDetailsResponse,
+  PlayerDetailsResponse,
   PlayerGamesResponse
 } from "@/components/composables/recommend-form.ts";
 

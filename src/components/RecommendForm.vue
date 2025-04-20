@@ -11,19 +11,31 @@ import type {
   PlayerGamesResponse
 } from "@/components/composables/recommend-form.ts";
 import NewtonCradleLoader from "@/components/NewtonCradleLoader.vue";
+import {
+  mapGameDetailsResponseToGameDetailsPayload
+} from "@/components/common/game-details-mapper.ts";
+import {
+  type OpenAIGameDetailsPayload,
+  type OpenAIResponse,
+  useOpenAIApi
+} from "@/components/common/use-openai-api.ts";
+import CubeLoader from "@/components/CubeLoader.vue";
 
 const steamApi = useSteamApi()
+const openAiApi = useOpenAIApi()
 
 const player1Loading = ref<boolean>(false)
 const player2Loading = ref<boolean>(false)
+const responseLoading = ref<boolean>(false)
 const player1Profile = ref<Player>()
 const player2Profile = ref<Player>()
-const player1GameDetails = ref<GameDetailsResponse[]>([])
-const player2GameDetails = ref<GameDetailsResponse[]>([])
+const player1GameDetails = ref<GameDetailsResponse[]>()
+const player2GameDetails = ref<GameDetailsResponse[]>()
 const player1GameDetailsCarousel = ref<GameCarouselDetails[]>([])
 const player2GameDetailsCarousel = ref<GameCarouselDetails[]>([])
 const currentSteamId1 = ref<string>()
 const currentSteamId2 = ref<string>()
+const finalResponse = ref<string>()
 
 const responsiveOptions = ref([
   {
@@ -42,12 +54,14 @@ const resetPlayer1 = () => {
   player1Profile.value = undefined
   player1GameDetails.value = []
   player1GameDetailsCarousel.value = []
+  finalResponse.value = undefined
 }
 
 const resetPlayer2 = () => {
   player2Profile.value = undefined
   player2GameDetails.value = []
   player2GameDetailsCarousel.value = []
+  finalResponse.value = undefined
 }
 
 const getPlayerBySteamId = async (isPlayer1: boolean) => {
@@ -88,6 +102,7 @@ const getPlayerBySteamId = async (isPlayer1: boolean) => {
 
 const formatGamesIntoCarousel = (isPlayer1: boolean) => {
   if (isPlayer1) {
+    if (!player1GameDetails.value) return
     for (let i = 0; i < player1GameDetails.value.length; i++) {
       const game = player1GameDetails.value[i]
       const gameDetail: GameCarouselDetails = {
@@ -97,6 +112,7 @@ const formatGamesIntoCarousel = (isPlayer1: boolean) => {
       player1GameDetailsCarousel.value.push(gameDetail)
     }
   } else {
+    if (!player2GameDetails.value) return
     for (let i = 0; i < player2GameDetails.value.length; i++) {
       const game = player2GameDetails.value[i]
       const gameDetail: GameCarouselDetails = {
@@ -107,6 +123,22 @@ const formatGamesIntoCarousel = (isPlayer1: boolean) => {
     }
   }
 }
+
+const compareUserProfiles = async () => {
+  if (!player1GameDetails.value || !player2GameDetails.value) return
+  responseLoading.value = true
+  const player1GameDetailsPayload = mapGameDetailsResponseToGameDetailsPayload(player1GameDetails.value)
+  const player2GameDetailsPayload = mapGameDetailsResponseToGameDetailsPayload(player2GameDetails.value)
+  const payload: OpenAIGameDetailsPayload = {
+    profileOne: player1GameDetailsPayload,
+    profileTwo: player2GameDetailsPayload
+  }
+  const response: OpenAIResponse = await openAiApi.compareProfiles(payload)
+  console.log(response)
+  responseLoading.value = false
+
+}
+
 </script>
 
 <template>
@@ -171,7 +203,17 @@ const formatGamesIntoCarousel = (isPlayer1: boolean) => {
           </template>
         </Carousel>
       </div>
-     </div>
+    </div>
+    <div class="recommend-form__submit-btn" v-if="player1GameDetails && player2GameDetails && !finalResponse && !responseLoading">
+      <Button @click.stop.prevent="compareUserProfiles" label="Find Compatible Games">
+        <template #icon>
+          <i class="pi pi-search"/>
+        </template>
+      </Button>
+    </div>
+    <div v-if="responseLoading" class="recommend-form__loading">
+      <CubeLoader/>
+    </div>
   </div>
 </template>
 
@@ -183,6 +225,23 @@ const formatGamesIntoCarousel = (isPlayer1: boolean) => {
   background-color: #151515;
   border-radius: 1rem;
   min-height: 40vh;
+
+  &__submit-btn {
+    display: flex;
+    margin: auto;
+    padding: 1rem;
+    justify-content: center;
+    align-items: center;
+  }
+
+  &__loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem;
+    min-height: 20vh;
+  }
+
   &__title {
     font-size: 2rem;
     font-weight: 700;
